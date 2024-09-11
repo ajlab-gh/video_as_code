@@ -1,7 +1,6 @@
 import os
 import subprocess
 import shutil
-from datetime import datetime
 
 # Define directories
 image_dir = "assets/images"
