@@ -6,7 +6,7 @@ import shutil
 image_dir = "assets/images"
 audio_dir = "assets/audio"
 output_dir = "assets/temp"
-output_final_dir = "assets/outputs"
+output_final_dir = "outputs"
 bumper_path = os.path.abspath("assets/bumpers/bumper.mp4")  # Absolute path to bumper video
 
 final_output = os.path.join(output_final_dir, f"final_output.mp4")
@@ -26,6 +26,34 @@ def get_audio_duration(audio_path):
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
     return float(result.stdout)
+
+# Function to check if an audio file is already CBR
+def is_cbr(audio_file):
+    ffprobe_command = [
+        'ffprobe', '-v', 'error', '-select_streams', 'a:0', '-show_entries', 
+        'format=bit_rate', '-of', 'default=noprint_wrappers=1:nokey=1', audio_file
+    ]
+    result = subprocess.run(ffprobe_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    bitrate_info = result.stdout.decode('utf-8').strip()
+
+    # If the bitrate is constant, it won't vary over the stream (This is a basic assumption)
+    if bitrate_info:
+        print(f"{audio_file} is CBR with bit rate {bitrate_info}")
+        return True
+    else:
+        print(f"{audio_file} is VBR or could not detect bit rate.")
+        return False
+
+# Function to convert audio to CBR if needed
+def convert_to_cbr(input_audio, output_audio):
+    if is_cbr(input_audio):
+        print(f"Skipping conversion for {input_audio}, already CBR.")
+    else:
+        cbr_command = [
+            'ffmpeg', '-i', input_audio, '-b:a', '192k', '-ar', '48000', '-ac', '2', '-y', output_audio
+        ]
+        print(f"Converting {input_audio} to CBR: {output_audio}")
+        subprocess.run(cbr_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 # Get list of image and audio files
 images = sorted([f for f in os.listdir(image_dir) if f.endswith(('.png', '.jpg', '.jpeg'))])
